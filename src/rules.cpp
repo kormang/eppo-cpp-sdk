@@ -1,4 +1,5 @@
 #include "rules.hpp"
+#include <iostream>
 #include <semver/semver.hpp>
 #include "config_response.hpp"
 #include "json_utils.hpp"
@@ -83,9 +84,12 @@ bool conditionMatches(const Condition& condition, const Attributes& subjectAttri
             if (condition.semVerValueValid) {
                 semver::version<> subjectSemVer;
                 auto result = semver::parse(subjectValueStr, subjectSemVer);
+                std::cerr << "\n\n result = " << result << "\n\n";
                 if (result) {
-                    return evaluateSemVerCondition(&subjectSemVer, condition.semVerValue.get(),
-                                                   condition.op);
+                    auto ret = evaluateSemVerCondition(&subjectSemVer, condition.semVerValue.get(),
+                                                       condition.op);
+                    std::cerr << "\n\n ret = " << ret << "\n\n";
+                    return ret;
                 }
             }
 
@@ -93,10 +97,14 @@ bool conditionMatches(const Condition& condition, const Attributes& subjectAttri
             if (condition.fourPartVersionValid) {
                 auto subjectFourPartVersion =
                     internal::safeParseFourPartVersionString(subjectValueStr);
+                std::cerr << "\n\n subjectFourPartVersion.has_value() = "
+                          << subjectFourPartVersion.has_value() << "\n\n";
                 if (subjectFourPartVersion.has_value()) {
-                    return evaluateFourPartVersionCondition(subjectFourPartVersion.value(),
-                                                            condition.fourPartVersionValue,
-                                                            condition.op);
+                    auto ret = evaluateFourPartVersionCondition(subjectFourPartVersion.value(),
+                                                                condition.fourPartVersionValue,
+                                                                condition.op);
+                    std::cerr << "\n\n ret = " << ret << "\n\n";
+                    return ret;
                 }
             }
         }
@@ -232,6 +240,11 @@ bool evaluateSemVerCondition(const void* subjectValue, const void* conditionValu
 bool evaluateFourPartVersionCondition(const std::tuple<int, int, int, int>& subjectValue,
                                       const std::tuple<int, int, int, int>& conditionValue,
                                       Operator op) {
+    std::cerr << std::get<0>(subjectValue) << '.' << std::get<1>(subjectValue) << '.'
+              << std::get<2>(subjectValue) << '.' << std::get<3>(subjectValue) << " ["
+              << static_cast<int>(op) << "] " << std::get<0>(conditionValue) << '.'
+              << std::get<1>(conditionValue) << '.' << std::get<2>(conditionValue) << '.'
+              << std::get<3>(conditionValue);
     // C++20 supports lexicographical compares out of the box,
     // but we need to support C++17.
     auto cmp = [](auto& subject, auto& condition, auto opFunc) {
